@@ -1,0 +1,37 @@
+{
+    "name": "scandipwa/urlrewrite",
+    "description": "N/A",
+    "type": "magento2-module",
+    "version": "0.0.1",
+    "keywords": [
+        "magento2",
+        "theme",
+        "urlrewrite",
+        "scandipwa",
+        "pwa"
+    ],
+    "license": [
+        "OSL-3.0"
+    ],
+    "support": {
+        "source": "https://github.com/scandipwa/urlrewrite-graphql",
+        "email": "info@scandiweb.com"
+    },
+    "authors": [
+        {
+            "name": "Vladimirs Mihnovics",
+            "email": "vladimirs.mihnovics@scandiweb.com"
+        }
+    ],
+    "require": {
+        "magento/product-community-edition": "^2.3.1"
+    },
+    "autoload": {
+        "files": [
+            "src/registration.php"
+        ],
+        "psr-4": {
+            "ScandiPWA\\UrlrewriteGraphQl\\": "src"
+        }
+    }
+}
