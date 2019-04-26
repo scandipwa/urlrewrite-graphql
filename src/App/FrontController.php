@@ -1,9 +1,10 @@
 <?php
 /**
- * Front controller responsible for dispatching application requests
- *
- * Copyright © Magento, Inc. All rights reserved.
- * See COPYING.txt for license details.
+ * @category  ScandiPWA
+ * @package   ScandiPWA\Urlrewrite
+ * @author    Vladimirs Mihnovics <info@scandiweb.com>
+ * @copyright Copyright (c) 2019 Scandiweb, Ltd (http://scandiweb.com)
+ * @license   OSL-3.0
  */
 namespace ScandiPWA\UrlrewriteGraphQl\App;
 
@@ -127,7 +128,7 @@ class FrontController extends FrontControllerExtended
         if ($routingCycleCounter > 100) {
             throw new \LogicException('Front controller reached 100 router match iterations');
         }
-        $result->action = $this->getRouteType($actionInstance);;
+        $result->action = $this->getRouteType($actionInstance);
         return $result;
     }
 

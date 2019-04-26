@@ -1,7 +1,10 @@
 <?php
 /**
- * Copyright © Magento, Inc. All rights reserved.
- * See COPYING.txt for license details.
+ * @category  ScandiPWA
+ * @package   ScandiPWA\Urlrewrite
+ * @author    Vladimirs Mihnovics <info@scandiweb.com>
+ * @copyright Copyright (c) 2019 Scandiweb, Ltd (http://scandiweb.com)
+ * @license   OSL-3.0
  */
 declare(strict_types=1);
 
@@ -15,6 +18,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\UrlRewrite\Model\UrlFinderInterface;
 use Magento\UrlRewriteGraphQl\Model\Resolver\UrlRewrite\CustomUrlLocatorInterface;
 use Magento\Catalog\Model\ProductRepository;
+use phpDocumentor\Reflection\Types\Integer;
 
 /**
  * UrlRewrite field resolver, used for GraphQL request processing.
@@ -89,7 +93,7 @@ class EntityUrl implements ResolverInterface
                 'id' => $id,
                 'canonical_url' => $urlRewrite->getTargetPath(),
                 'type' => $type,
-                'url_key' => ($type == 'PRODUCT') ? $this->getProductUrl($id) : null
+                'url_key' => ($type === 'PRODUCT') ? $this->getProductUrl($id) : null
             ];
         }
         return $result;
@@ -101,7 +105,7 @@ class EntityUrl implements ResolverInterface
      * @param $productId
      * @return String
      */
-    private function getProductUrl($productId) : string
+    private function getProductUrl(Integer $productId) : string
     {
         $product = $this->productRepository->getById($productId);
         return $product->getUrlKey();
