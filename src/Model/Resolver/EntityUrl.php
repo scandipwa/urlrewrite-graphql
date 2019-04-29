@@ -105,7 +105,7 @@ class EntityUrl implements ResolverInterface
      * @param $productId
      * @return String
      */
-    private function getProductUrl(Integer $productId) : string
+    private function getProductUrl(String $productId) : string
     {
         $product = $this->productRepository->getById($productId);
         return $product->getUrlKey();
