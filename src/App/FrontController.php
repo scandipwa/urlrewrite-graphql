@@ -131,7 +131,7 @@ class FrontController extends FrontControllerExtended
         if ($routingCycleCounter > 100) {
             throw new \LogicException('Front controller reached 100 router match iterations');
         }
-        $result->action = $this->getRouteType($actionInstance);
+        $result->setAction($this->getRouteType($actionInstance));
         return $result;
     }
 
