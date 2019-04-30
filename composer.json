@@ -1,8 +1,7 @@
 {
-    "name": "scandipwa/urlrewrite",
+    "name": "scandipwa/urlrewrite-graphql",
     "description": "N/A",
     "type": "magento2-module",
-    "version": "0.0.1",
     "keywords": [
         "magento2",
         "theme",

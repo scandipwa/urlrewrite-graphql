@@ -1,7 +1,7 @@
 <?php
 /**
  * @category  ScandiPWA
- * @package   ScandiPWA\Urlrewrite
+ * @package   ScandiPWA\UrlrewriteGraphQl
  * @author    Vladimirs Mihnovics <info@scandiweb.com>
  * @copyright Copyright (c) 2019 Scandiweb, Ltd (http://scandiweb.com)
  * @license   OSL-3.0
@@ -18,13 +18,12 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\UrlRewrite\Model\UrlFinderInterface;
 use Magento\UrlRewriteGraphQl\Model\Resolver\UrlRewrite\CustomUrlLocatorInterface;
 use Magento\Catalog\Model\ProductRepository;
-use phpDocumentor\Reflection\Types\Integer;
 
 /**
  * UrlRewrite field resolver, used for GraphQL request processing.
  */
 class EntityUrl implements ResolverInterface
-{ 
+{
     /**
      * @var UrlFinderInterface
      */

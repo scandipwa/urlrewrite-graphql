@@ -1,15 +1,11 @@
-
-# ScandiPWA - Progressive Web App for Magento
+##
+# ScandiPWA_CatalogGraphQl
 #
-# Copyright © Scandiweb, Inc. All rights reserved.
-# See LICENSE for license details.
-#
-# @license OSL-3.0 (Open Software License ("OSL") v. 3.0)
-# @package scandipwa/quote-graphql
-# @link https://github.com/scandipwa/quote-graphql
-#
-# Copyright © Magento, Inc. All rights reserved.
-# See COPYING.txt for license details.
+# @category    ScandiPWA
+# @package     ScandiPWA_UrlRewriteGraphQl
+# @author      Vladimirs Mihnovics <info@scandiweb.com>
+# @copyright   Copyright (c) 2018 Scandiweb, Ltd (https://scandiweb.com)
+##
 
 type EntityUrl @doc(description: "EntityUrl is an output object containing the `id`, `canonical_url`, and `type` attributes") {
     id: Int @doc(description: "The ID assigned to the object associated with the specified url. This could be a product ID, category ID, or page ID.")

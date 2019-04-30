@@ -8,6 +8,9 @@
  */
 namespace ScandiPWA\UrlrewriteGraphQl\App;
 
+use Magento\Catalog\Controller\Category\View as CategoryView;
+use Magento\Catalog\Controller\Product\View as ProductView;
+use Magento\Cms\Controller\Page\View as PageView;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\App\Request\ValidatorInterface as RequestValidator;
@@ -138,11 +141,11 @@ class FrontController extends FrontControllerExtended
      * @return String
      */
     private function getRouteType(ActionInterface $actionInstance) {
-        if(is_a($actionInstance, "Magento\Catalog\Controller\Product\View\Interceptor")) {
+        if($actionInstance instanceof ProductView) {
             return 'PRODUCT';
-        } elseif (is_a($actionInstance, "Magento\Catalog\Controller\Category\View\Interceptor")) {
+        } elseif ($actionInstance instanceof CategoryView) {
             return 'CATEGORY';
-        } elseif (is_a($actionInstance, "Magento\Cms\Controller\Page\View\Interceptor")) {
+        } elseif ($actionInstance instanceof PageView) {
             return 'CMS_PAGE';
         } else {
             return 'NOT_FOUND';
