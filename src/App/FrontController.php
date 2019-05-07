@@ -6,10 +6,12 @@
  * @copyright Copyright (c) 2019 Scandiweb, Ltd (http://scandiweb.com)
  * @license   OSL-3.0
  */
+
 namespace ScandiPWA\UrlrewriteGraphQl\App;
 
 use Magento\Catalog\Controller\Category\View as CategoryView;
 use Magento\Catalog\Controller\Product\View as ProductView;
+use Magento\Cms\Controller\Index\DefaultNoRoute;
 use Magento\Cms\Controller\Page\View as PageView;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\Controller\ResultInterface;
@@ -25,6 +27,7 @@ use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\ActionInterface;
 use Magento\Framework\App\FrontController as FrontControllerExtended;
+use ScandiPWA\Router\Controller\Ok\Index as PwaRouter;
 
 /**
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
@@ -35,46 +38,46 @@ class FrontController extends FrontControllerExtended
      * @var RouterListInterface
      */
     protected $_routerList;
-
+    
     /**
      * @var ResponseInterface
      */
     protected $response;
-
+    
     /**
      * @var RequestValidator
      */
     private $requestValidator;
-
+    
     /**
      * @var MessageManager
      */
     private $messages;
-
+    
     /**
      * @var LoggerInterface
      */
     private $logger;
-
+    
     /**
      * @var bool
      */
     private $validatedRequest = false;
-
+    
     /**
      * @var ResultInterface
      */
     public $result;
-
-
+    
+    
     public $actionInstance;
-
+    
     /**
-     * @param RouterListInterface $routerList
-     * @param ResponseInterface $response
+     * @param RouterListInterface   $routerList
+     * @param ResponseInterface     $response
      * @param RequestValidator|null $requestValidator
-     * @param MessageManager|null $messageManager
-     * @param LoggerInterface|null $logger
+     * @param MessageManager|null   $messageManager
+     * @param LoggerInterface|null  $logger
      */
     public function __construct(
         RouterListInterface $routerList,
@@ -82,8 +85,9 @@ class FrontController extends FrontControllerExtended
         ?RequestValidator $requestValidator = null,
         ?MessageManager $messageManager = null,
         ?LoggerInterface $logger = null
-    ) {
-        parent :: __construct( $routerList, $response, $requestValidator, $messageManager, $logger );
+    )
+    {
+        parent:: __construct($routerList, $response, $requestValidator, $messageManager, $logger);
         $this->_routerList = $routerList;
         $this->response = $response;
         $this->requestValidator = $requestValidator
@@ -93,7 +97,7 @@ class FrontController extends FrontControllerExtended
         $this->logger = $logger
             ?? ObjectManager::getInstance()->get(LoggerInterface::class);
     }
-
+    
     /**
      * Perform action and generate response
      *
@@ -101,7 +105,7 @@ class FrontController extends FrontControllerExtended
      * @return ResponseInterface|ResultInterface
      * @throws \LogicException
      */
-    public function dispatch( RequestInterface $request)
+    public function dispatch(RequestInterface $request)
     {
         \Magento\Framework\Profiler::start('routers_match');
         $this->validatedRequest = false;
@@ -134,39 +138,44 @@ class FrontController extends FrontControllerExtended
         $result->setAction($this->getRouteType($actionInstance));
         return $result;
     }
-
+    
     /**
      * @param ActionInterface $actionInstance
-     *
      * @return String
      */
-    private function getRouteType(ActionInterface $actionInstance) {
-        if($actionInstance instanceof ProductView) {
+    private function getRouteType(ActionInterface $actionInstance): ?string
+    {
+        if ($actionInstance instanceof ProductView) {
             return 'PRODUCT';
         } elseif ($actionInstance instanceof CategoryView) {
             return 'CATEGORY';
         } elseif ($actionInstance instanceof PageView) {
             return 'CMS_PAGE';
-        } else {
+        } elseif ($actionInstance instanceof PwaRouter) {
+            return 'PWA_ROUTER';
+        } elseif ($actionInstance instanceof DefaultNoRoute) {
             return 'NOT_FOUND';
         }
+        
+        return null;
     }
-
+    
     /**
-     * @param HttpRequest $request
+     * @param HttpRequest     $request
      * @param ActionInterface $actionInstance
+     * @return ResponseInterface|ResultInterface
      * @throws NotFoundException
      *
-     * @return ResponseInterface|ResultInterface
      */
     private function processRequest(
         HttpRequest $request,
         ActionInterface $actionInstance
-    ) {
+    )
+    {
         $request->setDispatched(true);
         $this->response->setNoCacheHeaders();
         $result = null;
-
+        
         //Validating a request only once.
         if (!$this->validatedRequest) {
             try {
@@ -178,7 +187,7 @@ class FrontController extends FrontControllerExtended
                 //Validation failed - processing validation results.
                 $this->logger->debug(
                     'Request validation failed for action "'
-                    .get_class($actionInstance) .'"'
+                    . get_class($actionInstance) . '"'
                 );
                 $result = $exception->getReplaceResult();
                 if ($messages = $exception->getMessages()) {
@@ -189,7 +198,7 @@ class FrontController extends FrontControllerExtended
             }
             $this->validatedRequest = true;
         }
-
+        
         //Validation did not produce a result to replace the action's.
         if (!$result) {
             if ($actionInstance instanceof AbstractAction) {
@@ -198,7 +207,7 @@ class FrontController extends FrontControllerExtended
                 $result = $actionInstance->execute();
             }
         }
-
+        
         //handling redirect to 404
         if ($result instanceof NotFoundException) {
             throw $result;
