@@ -10,12 +10,14 @@ declare(strict_types=1);
 
 namespace ScandiPWA\UrlrewriteGraphQl\Model\Resolver;
 
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\UrlRewrite\Model\UrlFinderInterface;
+use Magento\UrlRewrite\Service\V1\Data\UrlRewrite;
 use Magento\UrlRewriteGraphQl\Model\Resolver\UrlRewrite\CustomUrlLocatorInterface;
 use Magento\Catalog\Model\ProductRepository;
 
@@ -97,12 +99,13 @@ class EntityUrl implements ResolverInterface
         }
         return $result;
     }
-
+    
     /**
      * Find url key of product by id
      *
      * @param $productId
      * @return String
+     * @throws NoSuchEntityException
      */
     private function getProductUrl(String $productId) : string
     {
@@ -114,9 +117,9 @@ class EntityUrl implements ResolverInterface
      * Find the canonical url passing through all redirects if any
      *
      * @param string $requestPath
-     * @return \Magento\UrlRewrite\Service\V1\Data\UrlRewrite|null
+     * @return UrlRewrite|null
      */
-    private function findCanonicalUrl(string $requestPath) : ?\Magento\UrlRewrite\Service\V1\Data\UrlRewrite
+    private function findCanonicalUrl(string $requestPath) : ?UrlRewrite
     {
         $urlRewrite = $this->findUrlFromRequestPath($requestPath);
         if ($urlRewrite && $urlRewrite->getRedirectType() > 0) {
@@ -130,14 +133,15 @@ class EntityUrl implements ResolverInterface
 
         return $urlRewrite;
     }
-
+    
     /**
      * Find a url from a request url on the current store
      *
      * @param string $requestPath
-     * @return \Magento\UrlRewrite\Service\V1\Data\UrlRewrite|null
+     * @return UrlRewrite|null
+     * @throws NoSuchEntityException
      */
-    private function findUrlFromRequestPath(string $requestPath) : ?\Magento\UrlRewrite\Service\V1\Data\UrlRewrite
+    private function findUrlFromRequestPath(string $requestPath) : ?UrlRewrite
     {
         return $this->urlFinder->findOneByData(
             [
@@ -146,14 +150,15 @@ class EntityUrl implements ResolverInterface
             ]
         );
     }
-
+    
     /**
      * Find a url from a target url on the current store
      *
      * @param string $targetPath
-     * @return \Magento\UrlRewrite\Service\V1\Data\UrlRewrite|null
+     * @return UrlRewrite|null
+     * @throws NoSuchEntityException
      */
-    private function findUrlFromTargetPath(string $targetPath) : ?\Magento\UrlRewrite\Service\V1\Data\UrlRewrite
+    private function findUrlFromTargetPath(string $targetPath) : ?UrlRewrite
     {
         return $this->urlFinder->findOneByData(
             [
