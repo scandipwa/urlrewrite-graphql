@@ -80,9 +80,11 @@ class EntityUrl implements ResolverInterface
 
         $result = null;
         $url = $args['url'];
+
         if (substr($url, 0, 1) === '/' && $url !== '/') {
             $url = ltrim($url, '/');
         }
+
         $customUrl = $this->customUrlLocator->locateUrl($url);
         $url = $customUrl ?: $url;
         $urlRewrite = $this->findCanonicalUrl($url);
@@ -90,13 +92,19 @@ class EntityUrl implements ResolverInterface
         if ($urlRewrite) {
             $id = $urlRewrite->getEntityId();
             $type = $this->sanitizeType($urlRewrite->getEntityType());
+
             $result = [
                 'id' => $id,
-                'canonical_url' => $urlRewrite->getTargetPath(),
                 'type' => $type,
-                'url_key' => ($type === 'PRODUCT') ? $this->getProductUrl($id) : null
+                'canonical_url' => $urlRewrite->getTargetPath(),
             ];
+
+            if ($type === 'PRODUCT') {
+                $sku = $this->productRepository->getById($id)->getSku();
+                $result['sku'] = $sku;
+            }
         }
+
         return $result;
     }
     
