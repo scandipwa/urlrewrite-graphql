@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace ScandiPWA\UrlrewriteGraphQl\Model\Resolver;
 
+use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
@@ -19,7 +20,6 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\UrlRewrite\Model\UrlFinderInterface;
 use Magento\UrlRewrite\Service\V1\Data\UrlRewrite;
 use Magento\UrlRewriteGraphQl\Model\Resolver\UrlRewrite\CustomUrlLocatorInterface;
-use Magento\Catalog\Model\ProductRepository;
 
 /**
  * UrlRewrite field resolver, used for GraphQL request processing.
@@ -42,26 +42,26 @@ class EntityUrl implements ResolverInterface
     private $customUrlLocator;
 
     /**
-     * @var ProductRepository
+     * @var CollectionFactory
      */
-    private $productRepository;
+    private $productCollectionFactory;
 
     /**
      * @param UrlFinderInterface $urlFinder
      * @param StoreManagerInterface $storeManager
      * @param CustomUrlLocatorInterface $customUrlLocator
-     * @param ProductRepository $productRepository
+     * @param CollectionFactory $productCollectionFactory
      */
     public function __construct(
         UrlFinderInterface $urlFinder,
         StoreManagerInterface $storeManager,
         CustomUrlLocatorInterface $customUrlLocator,
-        ProductRepository $productRepository
+        CollectionFactory $productCollectionFactory
     ) {
         $this->urlFinder = $urlFinder;
         $this->storeManager = $storeManager;
         $this->customUrlLocator = $customUrlLocator;
-        $this->productRepository = $productRepository;
+        $this->productCollectionFactory = $productCollectionFactory;
     }
 
     /**
@@ -100,25 +100,14 @@ class EntityUrl implements ResolverInterface
             ];
 
             if ($type === 'PRODUCT') {
-                $sku = $this->productRepository->getById($id)->getSku();
-                $result['sku'] = $sku;
+                // Using this instead of factory due https://github.com/magento/magento2/issues/12278
+                $collection = $this->productCollectionFactory->create();
+                $product = $collection->addIdFilter($id)->getFirstItem();
+                $result['sku'] = $product->getSku();
             }
         }
 
         return $result;
-    }
-    
-    /**
-     * Find url key of product by id
-     *
-     * @param $productId
-     * @return String
-     * @throws NoSuchEntityException
-     */
-    private function getProductUrl(String $productId) : string
-    {
-        $product = $this->productRepository->getById($productId);
-        return $product->getUrlKey();
     }
 
     /**
@@ -141,7 +130,7 @@ class EntityUrl implements ResolverInterface
 
         return $urlRewrite;
     }
-    
+
     /**
      * Find a url from a request url on the current store
      *
@@ -158,7 +147,7 @@ class EntityUrl implements ResolverInterface
             ]
         );
     }
-    
+
     /**
      * Find a url from a target url on the current store
      *
