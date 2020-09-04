@@ -2,29 +2,15 @@
     "name": "scandipwa/urlrewrite-graphql",
     "description": "N/A",
     "type": "magento2-module",
-    "keywords": [
-        "magento2",
-        "theme",
-        "urlrewrite",
-        "scandipwa",
-        "pwa"
-    ],
     "license": [
         "OSL-3.0"
     ],
-    "support": {
-        "source": "https://github.com/scandipwa/urlrewrite-graphql",
-        "email": "info@scandiweb.com"
-    },
-    "authors": [
-        {
-            "name": "Vladimirs Mihnovics",
-            "email": "vladimirs.mihnovics@scandiweb.com"
-        }
-    ],
     "require": {
-        "magento/magento2-base": "^2.3.1",
-        "scandipwa/route717": "^1.1.0"
+        "magento/framework": "*",
+        "magento/module-catalog": "*",
+        "magento/module-store": "*",
+        "magento/module-url-rewrite": "*",
+        "magento/module-url-rewrite-graph-ql": "^100.3"
     },
     "autoload": {
         "files": [
