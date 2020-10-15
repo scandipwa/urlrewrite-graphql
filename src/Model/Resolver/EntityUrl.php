@@ -105,7 +105,7 @@ class EntityUrl implements ResolverInterface
                 $collection = $this->productCollectionFactory->create()
                     ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED]);
                 $product = $collection->addIdFilter($id)->getFirstItem();
-                if (!$product->hasItems()) {
+                if (!$product->hasData()) {
                     return null;
                 }
 
