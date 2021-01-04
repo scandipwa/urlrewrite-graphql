@@ -12,6 +12,7 @@ namespace ScandiPWA\UrlrewriteGraphQl\Model\Resolver;
 
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
@@ -22,12 +23,19 @@ use Magento\UrlRewrite\Model\UrlFinderInterface;
 use Magento\UrlRewrite\Service\V1\Data\UrlRewrite;
 use Magento\UrlRewriteGraphQl\Model\Resolver\UrlRewrite\CustomUrlLocatorInterface;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
+use Magento\CatalogInventory\Model\Stock\StockItemRepository;
+use Magento\Store\Model\ScopeInterface;
 
 /**
  * UrlRewrite field resolver, used for GraphQL request processing.
  */
 class EntityUrl implements ResolverInterface
 {
+    /**
+     * Config key 'Display Out of Stock Products'
+     */
+    const XML_PATH_CATALOGINVENTORY_SHOW_OUT_OF_STOCK = 'cataloginventory/options/show_out_of_stock';
+
     /**
      * @var UrlFinderInterface
      */
@@ -54,24 +62,41 @@ class EntityUrl implements ResolverInterface
     private $categoryRepository;
 
     /**
+     * @var StockItemRepository
+     */
+    private $stockItemRepository;
+
+    /**
+     * @var ScopeConfigInterface
+     */
+    private $scopeConfig;
+
+
+    /**
      * @param UrlFinderInterface $urlFinder
      * @param StoreManagerInterface $storeManager
      * @param CustomUrlLocatorInterface $customUrlLocator
      * @param CollectionFactory $productCollectionFactory
      * @param CategoryRepositoryInterface $categoryRepository
+     * @param StockItemRepository $stockItemRepository
+     * @param ScopeConfigInterface $scopeConfig
      */
     public function __construct(
         UrlFinderInterface $urlFinder,
         StoreManagerInterface $storeManager,
         CustomUrlLocatorInterface $customUrlLocator,
         CollectionFactory $productCollectionFactory,
-        CategoryRepositoryInterface $categoryRepository
+        CategoryRepositoryInterface $categoryRepository,
+        StockItemRepository $stockItemRepository,
+        ScopeConfigInterface $scopeConfig
     ) {
         $this->urlFinder = $urlFinder;
         $this->storeManager = $storeManager;
         $this->customUrlLocator = $customUrlLocator;
         $this->productCollectionFactory = $productCollectionFactory;
         $this->categoryRepository = $categoryRepository;
+        $this->stockItemRepository = $stockItemRepository;
+        $this->scopeConfig = $scopeConfig;
     }
 
     /**
@@ -114,7 +139,18 @@ class EntityUrl implements ResolverInterface
                 $collection = $this->productCollectionFactory->create()
                     ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED]);
                 $product = $collection->addIdFilter($id)->getFirstItem();
-                if (!$product->hasData()) {
+                $isInStock = $this->stockItemRepository->get($id)->getIsInStock();
+
+                $isOutOfStockDisplay = $this->scopeConfig->getValue(
+                    self::XML_PATH_CATALOGINVENTORY_SHOW_OUT_OF_STOCK,
+                    ScopeInterface::SCOPE_STORE
+                );
+
+                /*
+                 * return 404 page if product has no data
+                 * or out of stock product display is disabled
+                 */
+                if (!$product->hasData() || !$isOutOfStockDisplay && !$isInStock) {
                     return null;
                 }
 
