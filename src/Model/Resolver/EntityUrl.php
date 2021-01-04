@@ -21,6 +21,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use Magento\UrlRewrite\Model\UrlFinderInterface;
 use Magento\UrlRewrite\Service\V1\Data\UrlRewrite;
 use Magento\UrlRewriteGraphQl\Model\Resolver\UrlRewrite\CustomUrlLocatorInterface;
+use Magento\Catalog\Api\CategoryRepositoryInterface;
 
 /**
  * UrlRewrite field resolver, used for GraphQL request processing.
@@ -48,21 +49,29 @@ class EntityUrl implements ResolverInterface
     private $productCollectionFactory;
 
     /**
+     * @var CategoryRepositoryInterface
+     */
+    private $categoryRepository;
+
+    /**
      * @param UrlFinderInterface $urlFinder
      * @param StoreManagerInterface $storeManager
      * @param CustomUrlLocatorInterface $customUrlLocator
      * @param CollectionFactory $productCollectionFactory
+     * @param CategoryRepositoryInterface $categoryRepository
      */
     public function __construct(
         UrlFinderInterface $urlFinder,
         StoreManagerInterface $storeManager,
         CustomUrlLocatorInterface $customUrlLocator,
-        CollectionFactory $productCollectionFactory
+        CollectionFactory $productCollectionFactory,
+        CategoryRepositoryInterface $categoryRepository
     ) {
         $this->urlFinder = $urlFinder;
         $this->storeManager = $storeManager;
         $this->customUrlLocator = $customUrlLocator;
         $this->productCollectionFactory = $productCollectionFactory;
+        $this->categoryRepository = $categoryRepository;
     }
 
     /**
@@ -110,6 +119,13 @@ class EntityUrl implements ResolverInterface
                 }
 
                 $result['sku'] = $product->getSku();
+            } elseif ($type === 'CATEGORY') {
+                $storeId = $this->storeManager->getStore()->getId();
+                $category = $this->categoryRepository->get($id, $storeId);
+
+                if (!$category->getIsActive()) {
+                    return null;
+                }
             }
         }
 
