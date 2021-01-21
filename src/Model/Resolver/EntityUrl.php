@@ -143,7 +143,6 @@ class EntityUrl implements ResolverInterface
 
                 try {
                     $isInStock = $this->stockItemRepository->get($id)->getIsInStock();
-                    throw new NoSuchEntityException();
                 } catch (NoSuchEntityException $e) {
                     // Ignoring error is safe
                 }
