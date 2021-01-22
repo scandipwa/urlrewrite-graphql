@@ -139,7 +139,13 @@ class EntityUrl implements ResolverInterface
                 $collection = $this->productCollectionFactory->create()
                     ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED]);
                 $product = $collection->addIdFilter($id)->getFirstItem();
-                $isInStock = $this->stockItemRepository->get($id)->getIsInStock();
+                $isInStock = false;
+
+                try {
+                    $isInStock = $this->stockItemRepository->get($id)->getIsInStock();
+                } catch (NoSuchEntityException $e) {
+                    // Ignoring error is safe
+                }
 
                 $isOutOfStockDisplay = $this->scopeConfig->getValue(
                     self::XML_PATH_CATALOGINVENTORY_SHOW_OUT_OF_STOCK,
