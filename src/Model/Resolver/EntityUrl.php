@@ -10,21 +10,23 @@ declare(strict_types=1);
 
 namespace ScandiPWA\UrlrewriteGraphQl\Model\Resolver;
 
+use Magento\Catalog\Api\CategoryRepositoryInterface;
+use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
+use Magento\CatalogInventory\Api\StockStateInterface;
+use Magento\CatalogInventory\Model\Stock\StockItemRepository;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\GraphQl\Exception\GraphQlInputException;
-use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\GraphQl\Config\Element\Field;
+use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
+use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\UrlRewrite\Model\UrlFinderInterface;
 use Magento\UrlRewrite\Service\V1\Data\UrlRewrite;
 use Magento\UrlRewriteGraphQl\Model\Resolver\UrlRewrite\CustomUrlLocatorInterface;
-use Magento\Catalog\Api\CategoryRepositoryInterface;
-use Magento\CatalogInventory\Model\Stock\StockItemRepository;
-use Magento\Store\Model\ScopeInterface;
 
 /**
  * UrlRewrite field resolver, used for GraphQL request processing.
@@ -71,6 +73,15 @@ class EntityUrl implements ResolverInterface
      */
     private $scopeConfig;
 
+    /**
+     * @var ProductRepositoryInterface
+     */
+    private $productRepository;
+
+    /**
+     * @var StockStateInterface
+     */
+    private $stockState;
 
     /**
      * @param UrlFinderInterface $urlFinder
@@ -80,6 +91,8 @@ class EntityUrl implements ResolverInterface
      * @param CategoryRepositoryInterface $categoryRepository
      * @param StockItemRepository $stockItemRepository
      * @param ScopeConfigInterface $scopeConfig
+     * @param ProductRepositoryInterface $productRepository
+     * @param StockStateInterface $stockState
      */
     public function __construct(
         UrlFinderInterface $urlFinder,
@@ -88,7 +101,9 @@ class EntityUrl implements ResolverInterface
         CollectionFactory $productCollectionFactory,
         CategoryRepositoryInterface $categoryRepository,
         StockItemRepository $stockItemRepository,
-        ScopeConfigInterface $scopeConfig
+        ScopeConfigInterface $scopeConfig,
+        ProductRepositoryInterface $productRepository,
+        StockStateInterface $stockState
     ) {
         $this->urlFinder = $urlFinder;
         $this->storeManager = $storeManager;
@@ -97,6 +112,8 @@ class EntityUrl implements ResolverInterface
         $this->categoryRepository = $categoryRepository;
         $this->stockItemRepository = $stockItemRepository;
         $this->scopeConfig = $scopeConfig;
+        $this->productRepository = $productRepository;
+        $this->stockState = $stockState;
     }
 
     /**
@@ -141,10 +158,16 @@ class EntityUrl implements ResolverInterface
                 $product = $collection->addIdFilter($id)->getFirstItem();
                 $isInStock = false;
 
-                try {
-                    $isInStock = $this->stockItemRepository->get($id)->getIsInStock();
-                } catch (NoSuchEntityException $e) {
-                    // Ignoring error is safe
+                $productType = $this->getProductType($id);
+
+                if ($productType === 'configurable') {
+                    $isInStock = $this->getConfigurableProductStockState($product);
+                } else {
+                    try {
+                        $isInStock = $this->stockItemRepository->get($id)->getIsInStock();
+                    } catch (NoSuchEntityException $e) {
+                        // Ignoring error is safe
+                    }
                 }
 
                 $isOutOfStockDisplay = $this->scopeConfig->getValue(
@@ -238,5 +261,28 @@ class EntityUrl implements ResolverInterface
     private function sanitizeType(string $type) : string
     {
         return strtoupper(str_replace('-', '_', $type));
+    }
+
+    private function getProductType($id): ?string
+    {
+        try {
+            return $this->productRepository->getById($id)->getTypeId();
+        } catch (NoSuchEntityException $e) {
+            return null;
+        }
+    }
+
+    private function getConfigurableProductStockState($product) : bool
+    {
+        $totalStock = 0;
+        if ($product->getTypeID() == 'configurable') {
+            $productTypeInstance = $product->getTypeInstance();
+            $usedProducts = $productTypeInstance->getUsedProducts($product);
+            foreach ($usedProducts as $simple) {
+                $totalStock += $this->stockState->getStockQty($simple->getId(), $simple->getStore()->getWebsiteId());
+            }
+        }
+
+        return $totalStock > 0;
     }
 }
