@@ -10,6 +10,9 @@ declare(strict_types=1);
 
 namespace ScandiPWA\UrlrewriteGraphQl\Model\Resolver;
 
+use Magento\Bundle\Api\Data\LinkInterface;
+use Magento\Bundle\Api\ProductLinkManagementInterface;
+use Magento\Bundle\Api\ProductOptionRepositoryInterface;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
@@ -84,6 +87,21 @@ class EntityUrl implements ResolverInterface
     private $stockState;
 
     /**
+     * @var ProductLinkManagementInterface
+     */
+    private $productLinkManagement;
+
+    /**
+     * @var LinkInterface
+     */
+    private $linkInterface;
+
+    /**
+     * @var ProductOptionRepositoryInterface
+     */
+    private $productOptionRepository;
+
+    /**
      * @param UrlFinderInterface $urlFinder
      * @param StoreManagerInterface $storeManager
      * @param CustomUrlLocatorInterface $customUrlLocator
@@ -93,6 +111,9 @@ class EntityUrl implements ResolverInterface
      * @param ScopeConfigInterface $scopeConfig
      * @param ProductRepositoryInterface $productRepository
      * @param StockStateInterface $stockState
+     * @param ProductLinkManagementInterface $productLinkManagement
+     * @param LinkInterface $linkInterface
+     * @param ProductOptionRepositoryInterface $productOptionRepository
      */
     public function __construct(
         UrlFinderInterface $urlFinder,
@@ -103,7 +124,10 @@ class EntityUrl implements ResolverInterface
         StockItemRepository $stockItemRepository,
         ScopeConfigInterface $scopeConfig,
         ProductRepositoryInterface $productRepository,
-        StockStateInterface $stockState
+        StockStateInterface $stockState,
+        ProductLinkManagementInterface $productLinkManagement,
+        ProductOptionRepositoryInterface $productOptionRepository,
+        LinkInterface $linkInterface
     ) {
         $this->urlFinder = $urlFinder;
         $this->storeManager = $storeManager;
@@ -114,6 +138,9 @@ class EntityUrl implements ResolverInterface
         $this->scopeConfig = $scopeConfig;
         $this->productRepository = $productRepository;
         $this->stockState = $stockState;
+        $this->productLinkManagement = $productLinkManagement;
+        $this->linkInterface = $linkInterface;
+        $this->productOptionRepository = $productOptionRepository;
     }
 
     /**
@@ -158,10 +185,16 @@ class EntityUrl implements ResolverInterface
                 $product = $collection->addIdFilter($id)->getFirstItem();
                 $isInStock = false;
 
-                $productType = $this->getProductType($id);
+                if ($this->isProductTypeBundle($product)) {
+                    $productType = 'bundle';
+                } else {
+                    $productType = $this->getProductType($id);
+                }
 
                 if ($productType === 'configurable') {
                     $isInStock = $this->getConfigurableProductStockState($product);
+                } elseif ($productType === 'bundle') {
+                    $isInStock = $this->getBundleProductsStockState($this->getBundleProductChildrenItems($product, $id));
                 } else {
                     try {
                         $isInStock = $this->stockItemRepository->get($id)->getIsInStock();
@@ -261,6 +294,33 @@ class EntityUrl implements ResolverInterface
     private function sanitizeType(string $type) : string
     {
         return strtoupper(str_replace('-', '_', $type));
+    }
+
+    private function isProductTypeBundle($product) : bool
+    {
+        foreach ($product->getData() as $value) {
+            if ($value === 'bundle') {
+                return true;
+            }
+        }
+    }
+
+    private function getBundleProductChildrenItems($product, $id)
+    {
+        $typeInstance = $product->getTypeInstance();
+        return $typeInstance->getChildrenIds($id, true);
+    }
+
+    private function getBundleProductsStockState($productsCollection) : bool
+    {
+        $total_stock = 0;
+        foreach ($productsCollection as $value) {
+            foreach ($value as $concreteIndex) {
+                $total_stock += $this->stockState->getStockQty($concreteIndex);
+            }
+        }
+
+        return $total_stock > 0;
     }
 
     private function getProductType($id): ?string
