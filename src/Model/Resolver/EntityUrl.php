@@ -18,12 +18,15 @@ use Magento\Framework\GraphQl\Exception\GraphQlInputException;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
 use Magento\Framework\GraphQl\Config\Element\Field;
 use Magento\Framework\GraphQl\Query\ResolverInterface;
+use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
+use Magento\InventorySales\Model\IsProductSalableCondition\IsSalableWithReservationsCondition;
 use Magento\Store\Model\StoreManagerInterface;
 use Magento\UrlRewrite\Model\UrlFinderInterface;
 use Magento\UrlRewrite\Service\V1\Data\UrlRewrite;
 use Magento\UrlRewriteGraphQl\Model\Resolver\UrlRewrite\CustomUrlLocatorInterface;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
-use Magento\CatalogInventory\Model\Stock\StockItemRepository;
+use Magento\Catalog\Api\Data\ProductInterface;
+use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 use Magento\Store\Model\ScopeInterface;
 
 /**
@@ -62,15 +65,19 @@ class EntityUrl implements ResolverInterface
     private $categoryRepository;
 
     /**
-     * @var StockItemRepository
-     */
-    private $stockItemRepository;
-
-    /**
      * @var ScopeConfigInterface
      */
     private $scopeConfig;
 
+    /**
+     * @var IsSalableWithReservationsCondition
+     */
+    private $isSalableWithReservations;
+
+    /**
+     * @var StockByWebsiteIdResolverInterface
+     */
+    private $stockByWebsiteId;
 
     /**
      * @param UrlFinderInterface $urlFinder
@@ -78,8 +85,9 @@ class EntityUrl implements ResolverInterface
      * @param CustomUrlLocatorInterface $customUrlLocator
      * @param CollectionFactory $productCollectionFactory
      * @param CategoryRepositoryInterface $categoryRepository
-     * @param StockItemRepository $stockItemRepository
      * @param ScopeConfigInterface $scopeConfig
+     * @param IsSalableWithReservationsCondition $isSalableWithReservations
+     * @param StockByWebsiteIdResolverInterface $stockByWebsiteId
      */
     public function __construct(
         UrlFinderInterface $urlFinder,
@@ -87,16 +95,18 @@ class EntityUrl implements ResolverInterface
         CustomUrlLocatorInterface $customUrlLocator,
         CollectionFactory $productCollectionFactory,
         CategoryRepositoryInterface $categoryRepository,
-        StockItemRepository $stockItemRepository,
-        ScopeConfigInterface $scopeConfig
+        ScopeConfigInterface $scopeConfig,
+        IsSalableWithReservationsCondition $isSalableWithReservations,
+        StockByWebsiteIdResolverInterface $stockByWebsiteId
     ) {
         $this->urlFinder = $urlFinder;
         $this->storeManager = $storeManager;
         $this->customUrlLocator = $customUrlLocator;
         $this->productCollectionFactory = $productCollectionFactory;
         $this->categoryRepository = $categoryRepository;
-        $this->stockItemRepository = $stockItemRepository;
         $this->scopeConfig = $scopeConfig;
+        $this->isSalableWithReservations = $isSalableWithReservations;
+        $this->stockByWebsiteId = $stockByWebsiteId;
     }
 
     /**
@@ -139,10 +149,11 @@ class EntityUrl implements ResolverInterface
                 $collection = $this->productCollectionFactory->create()
                     ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED]);
                 $product = $collection->addIdFilter($id)->getFirstItem();
+
                 $isInStock = false;
 
                 try {
-                    $isInStock = $this->stockItemRepository->get($id)->getIsInStock();
+                    $isInStock = $this->isProductInStock($product);
                 } catch (NoSuchEntityException $e) {
                     // Ignoring error is safe
                 }
@@ -172,6 +183,34 @@ class EntityUrl implements ResolverInterface
         }
 
         return $result;
+    }
+
+    /**
+     * Checks if the product is in stock, considers:
+     *  - multiple sources (MSI)
+     *  - configurable product
+     *  - product reservations
+     *
+     * @param  Magento\Catalog\Api\Data\ProductInterface $product
+     * @return boolean
+     */
+    private function isProductInStock(ProductInterface $product): bool {
+        $isInStock = false;
+
+        $allProducts = [$product];
+        if($product->getTypeId() == Configurable::TYPE_CODE){
+            $allProducts = $product->getTypeInstance()->getUsedProducts($product);
+        }
+
+        $stockId = $this->stockByWebsiteId->execute((int)$this->storeManager->getStore()->getId());
+        foreach($allProducts as $product) {
+            $isInStock = $this->isSalableWithReservations->execute($product->getSku(), (int)$stockId->getId());
+            if ($isInStock) {
+                break;
+            }
+        }
+
+        return $isInStock;
     }
 
     /**
