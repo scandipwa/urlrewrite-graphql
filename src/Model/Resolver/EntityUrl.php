@@ -112,7 +112,8 @@ class EntityUrl implements ResolverInterface
             if ($type === 'PRODUCT') {
                 // Using this instead of factory due https://github.com/magento/magento2/issues/12278
                 $collection = $this->productCollectionFactory->create()
-                    ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED]);
+                    ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
+                    ->addWebsiteFilter($this->storeManager->getWebsite());
                 $product = $collection->addIdFilter($id)->getFirstItem();
                 if (!$product->hasData()) {
                     return null;
