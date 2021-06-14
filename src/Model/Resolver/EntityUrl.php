@@ -100,6 +100,10 @@ class EntityUrl implements ResolverInterface
 
         $customUrl = $this->customUrlLocator->locateUrl($url);
 
+        /*
+         * Check if it is product target path and remove everything
+         * after id from url since we don't get specific categories for products
+         */
         if (str_contains($url, self::PRODUCT_TARGET_PATH)) {
             $urlArray = explode('/', $url);
             $url = implode('/', array_slice($urlArray, 0, 5));
