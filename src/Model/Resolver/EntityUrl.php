@@ -85,8 +85,7 @@ class EntityUrl implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    )
-    {
+    ) {
         if (!isset($args['url']) || empty(trim($args['url']))) {
             throw new GraphQlInputException(__('"url" argument should be specified and not empty'));
         }
