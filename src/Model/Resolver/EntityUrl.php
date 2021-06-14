@@ -28,6 +28,8 @@ use Magento\Catalog\Api\CategoryRepositoryInterface;
  */
 class EntityUrl implements ResolverInterface
 {
+    const PRODUCT_TARGET_PATH = 'catalog/product/view/id/';
+
     /**
      * @var UrlFinderInterface
      */
@@ -83,7 +85,8 @@ class EntityUrl implements ResolverInterface
         ResolveInfo $info,
         array $value = null,
         array $args = null
-    ) {
+    )
+    {
         if (!isset($args['url']) || empty(trim($args['url']))) {
             throw new GraphQlInputException(__('"url" argument should be specified and not empty'));
         }
@@ -96,7 +99,14 @@ class EntityUrl implements ResolverInterface
         }
 
         $customUrl = $this->customUrlLocator->locateUrl($url);
-        $url = $customUrl ?: $url;
+
+        if (str_contains($url, self::PRODUCT_TARGET_PATH)) {
+            $urlArray = explode('/', $url);
+            $url = implode('/', array_slice($urlArray, 0, 5));
+        } else {
+            $url = $customUrl ?: $url;
+        }
+
         $urlRewrite = $this->findCanonicalUrl($url);
 
         if ($urlRewrite) {
@@ -114,6 +124,7 @@ class EntityUrl implements ResolverInterface
                 $collection = $this->productCollectionFactory->create()
                     ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED]);
                 $product = $collection->addIdFilter($id)->getFirstItem();
+
                 if (!$product->hasData()) {
                     return null;
                 }
