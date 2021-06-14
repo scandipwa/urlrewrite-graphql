@@ -28,6 +28,8 @@ use Magento\Catalog\Api\CategoryRepositoryInterface;
  */
 class EntityUrl implements ResolverInterface
 {
+    const PRODUCT_TARGET_PATH = 'catalog/product/view/id/';
+
     /**
      * @var UrlFinderInterface
      */
@@ -96,7 +98,18 @@ class EntityUrl implements ResolverInterface
         }
 
         $customUrl = $this->customUrlLocator->locateUrl($url);
-        $url = $customUrl ?: $url;
+
+        /*
+         * Check if it is product target path and remove everything
+         * after id from url since we don't get specific categories for products
+         */
+        if (str_contains($url, self::PRODUCT_TARGET_PATH)) {
+            $urlArray = explode('/', $url);
+            $url = implode('/', array_slice($urlArray, 0, 5));
+        } else {
+            $url = $customUrl ?: $url;
+        }
+
         $urlRewrite = $this->findCanonicalUrl($url);
 
         if ($urlRewrite) {
@@ -115,6 +128,7 @@ class EntityUrl implements ResolverInterface
                     ->addAttributeToFilter('status', ['eq' => Status::STATUS_ENABLED])
                     ->addWebsiteFilter($this->storeManager->getWebsite());
                 $product = $collection->addIdFilter($id)->getFirstItem();
+
                 if (!$product->hasData()) {
                     return null;
                 }
