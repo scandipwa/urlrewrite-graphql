@@ -12,6 +12,7 @@ type EntityUrl @doc(description: "EntityUrl is an output object containing the `
     sku: String @doc(description: "If URL rewrite is of type PRODUCT - it will return SKU here")
     canonical_url: String @doc(description: "The internal relative URL. If the specified  url is a redirect, the query returns the redirected URL, not the original.")
     type: UrlRewriteEntityTypeEnum @doc(description: "One of PRODUCT, CATEGORY, or CMS_PAGE.")
+    display_mode: String @doc(description: "One of PRODUCTS, PAGE or PRODUCTS_AND_PAGE")
 }
 
 type Query {

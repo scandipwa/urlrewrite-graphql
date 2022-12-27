@@ -138,6 +138,8 @@ class EntityUrl implements ResolverInterface
                 $storeId = $this->storeManager->getStore()->getId();
                 $category = $this->categoryRepository->get($id, $storeId);
 
+                $result['display_mode'] = $category->getDisplayMode();
+
                 if (!$category->getIsActive()) {
                     return null;
                 }
