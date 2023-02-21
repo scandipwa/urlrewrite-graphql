@@ -139,6 +139,7 @@ class EntityUrl implements ResolverInterface
                 $category = $this->categoryRepository->get($id, $storeId);
 
                 $result['display_mode'] = $category->getDisplayMode();
+                $result['sort_by'] = $category->getDefaultSortBy();
 
                 if (!$category->getIsActive()) {
                     return null;
